@@ -128,18 +128,18 @@ class Engine(subprocess.Popen):
             self.setoption('Ponder', False)
 
         base_param = {
-        "Write Debug Log": "false",
-        "Contempt Factor": 0, # There are some stockfish versions with Contempt Factor
-        "Contempt": 0,        # and others with Contempt. Just try both.
-        "Min Split Depth": 0,
-        "Threads": 1,
-        "Hash": 16,
-        "MultiPV": 1,
-        "Skill Level": 20,
-        "Move Overhead": 30,
-        "Minimum Thinking Time": 20,
-        "Slow Mover": 80,
-        "UCI_Chess960": "false",
+            "Write Debug Log": "false",
+            "Contempt Factor": 0, # There are some stockfish versions with Contempt Factor
+            "Contempt": 0,        # and others with Contempt. Just try both.
+            "Min Split Depth": 0,
+            "Threads": 1,
+            "Hash": 16,
+            "MultiPV": 1,
+            "Skill Level": 20,
+            "Move Overhead": 30,
+            "Minimum Thinking Time": 20,
+            "Slow Mover": 80,
+            "UCI_Chess960": "false",
         }
 
         if rand:
@@ -212,13 +212,13 @@ class Engine(subprocess.Popen):
             text = self.stdout.readline().strip()
             split_text = text.split(' ')
             if split_text[0]=='bestmove':
-                                score_cp = self.score_cp_from_info(last_line)
-                                ponder = split_text[3] if len(split_text) >= 3 else None
+                score_cp = self.score_cp_from_info(last_line)
+                ponder = split_text[3] if len(split_text) >= 3 else None
                 return {'move': split_text[1],
-                                        'ponder': ponder,
-                                        'info': last_line,
-                                        'score_cp': score_cp
-                                }
+                        'ponder': ponder,
+                        'info': last_line,
+                        'score_cp': score_cp
+                }
             last_line = text
 
     def isready(self):
