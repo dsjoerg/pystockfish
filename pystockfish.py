@@ -12,6 +12,7 @@
 """
 
 import subprocess
+import re
 from random import randint
 
 class Match:
@@ -176,6 +177,10 @@ class Engine(subprocess.Popen):
 		self.put('position startpos moves %s'%self._movelisttostr(moves))
 		self.isready()
 
+	def setfen(self, fen):
+		self.put('position fen %s'%fen)
+		self.isready()
+
 	def go(self):
 		self.put('go depth %s'%self.depth)
 
@@ -188,6 +193,18 @@ class Engine(subprocess.Popen):
 			movestr += h + ' '
 		return movestr.strip()
 
+        def score_cp_from_info(self, info):
+                '''
+                Given an info string, returns the evaluated score in centipawns,
+                from the perspective of the player making the move.
+                '''
+                score_cp_match = re.search('score cp ([-0-9]+)', info)
+                if score_cp_match:
+                        score_cp_string = re.search('score cp ([-0-9]+)', info).groups()[0]
+                        return int(score_cp_string)
+                else:
+                        return None
+
 	def bestmove(self):
 		last_line = ""
 		self.go()
@@ -195,10 +212,13 @@ class Engine(subprocess.Popen):
 			text = self.stdout.readline().strip()
 			split_text = text.split(' ')
 			if split_text[0]=='bestmove':
+                                score_cp = self.score_cp_from_info(last_line)
+                                ponder = split_text[3] if len(split_text) >= 3 else None
 				return {'move': split_text[1],
-						'ponder': split_text[3],
-						'info': last_line
-						}
+                                        'ponder': ponder,
+                                        'info': last_line,
+                                        'score_cp': score_cp
+                                }
 			last_line = text
 
 	def isready(self):
