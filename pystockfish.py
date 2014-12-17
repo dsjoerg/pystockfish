@@ -197,11 +197,23 @@ class Engine(subprocess.Popen):
         '''
         Given an info string, returns the evaluated score in centipawns,
         from the perspective of the player making the move.
+
+        where mate-in-1 is equity 2^15 - 1 for white and 1 - 2^15 for black,
+        mate-in-2 is equity 2^15 - 2 or 2 - 2^15
+
         '''
-        score_cp_match = re.search('score cp ([-0-9]+)', info)
-        if score_cp_match:
-            score_cp_string = re.search('score cp ([-0-9]+)', info).groups()[0]
-            return int(score_cp_string)
+        multiplier = 1
+        score_match = re.search('score (cp|mate) ([-0-9]+)', info)
+        if score_match:
+            score = int(score_match.groups()[1])
+            if score_match.groups()[0] == 'mate':
+                mate_count = score
+                if score > 0:
+                    score = 32768 - mate_count
+                else:
+                    score = mate_count - 32768
+                
+            return score
         else:
             return None
 
