@@ -115,13 +115,14 @@ class Engine(subprocess.Popen):
     'rand_min' and 'rand_max' so that you may run automated matches against slightly different
     engines.
     '''
-    def __init__(self, depth=2, ponder=False, param={}, rand=False, rand_min=-10, rand_max=10):
+    def __init__(self, depth=None, ponder=False, param={}, rand=False, rand_min=-10, rand_max=10, movetime=None):
         subprocess.Popen.__init__(self, 
             'stockfish',
             universal_newlines=True,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,)
-        self.depth = str(depth)
+        self.depth = depth
+        self.movetime = movetime
         self.ponder = ponder
         self.put('uci')
         if not ponder:
@@ -159,6 +160,8 @@ class Engine(subprocess.Popen):
         self.isready()
 
     def put(self, command):
+# FOR IN-DEPTH STOCKFISH DEBUGGING
+#        print command
         self.stdin.write(command+'\n')
 
     def flush(self):
@@ -182,7 +185,10 @@ class Engine(subprocess.Popen):
         self.isready()
 
     def go(self):
-        self.put('go depth %s'%self.depth)
+        if self.depth:
+            self.put('go depth %i'%self.depth)
+        elif self.movetime:
+            self.put('go movetime %i'%self.movetime)
 
     def _movelisttostr(self,moves):
         '''
@@ -203,6 +209,7 @@ class Engine(subprocess.Popen):
 
         '''
         multiplier = 1
+#        print 'Extracting score from %s' % info
         score_match = re.search('score (cp|mate) ([-0-9]+)', info)
         if score_match:
             score = int(score_match.groups()[1])
@@ -212,26 +219,28 @@ class Engine(subprocess.Popen):
                     score = 32768 - mate_count
                 else:
                     score = mate_count - 32768
-                
+
+#            print 'Extracted %i' % score
             return score
         else:
             return None
 
     def bestmove(self):
-        last_line = ""
+        last_score_line = ""
         self.go()
         while True:
             text = self.stdout.readline().strip()
             split_text = text.split(' ')
             if split_text[0]=='bestmove':
-                score_cp = self.score_cp_from_info(last_line)
+                score_cp = self.score_cp_from_info(last_score_line)
                 ponder = split_text[3] if len(split_text) >= 3 else None
                 return {'move': split_text[1],
                         'ponder': ponder,
-                        'info': last_line,
+                        'info': last_score_line,
                         'score_cp': score_cp
                 }
-            last_line = text
+            if 'score' in text:
+                last_score_line = text
 
     def isready(self):
         '''
