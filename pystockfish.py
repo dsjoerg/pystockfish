@@ -124,6 +124,7 @@ class Engine(subprocess.Popen):
         self.depth = depth
         self.movetime = movetime
         self.ponder = ponder
+        self.debug = False
         self.put('uci')
         if not ponder:
             self.setoption('Ponder', False)
@@ -161,7 +162,8 @@ class Engine(subprocess.Popen):
 
     def put(self, command):
 # FOR IN-DEPTH STOCKFISH DEBUGGING
-#        print command
+        if self.debug:
+            print command
         self.stdin.write(command+'\n')
 
     def flush(self):
@@ -225,9 +227,47 @@ class Engine(subprocess.Popen):
         else:
             return None
 
+    def parse_info(self, info):
+        '''
+        Given an info string, returns [depth, seldepth, score, nodes, move_one, move_two]
+        Where score is from the perspective of the player making the move.
+
+        where mate-in-1 is equity 2^15 - 1 for white and 1 - 2^15 for black,
+        mate-in-2 is equity 2^15 - 2 or 2 - 2^15
+
+        move_one is the engine best move
+        and move_two is the best response move
+
+        '''
+        multiplier = 1
+        if self.debug:
+            print 'Extracting infos from %s' % info
+        the_match = re.search('info depth ([0-9]+) seldepth ([0-9]+) multipv 1 score (cp|mate) ([-0-9]+) nodes ([0-9]+) .* pv ([a-z1-9]+)', info)
+        if the_match:
+            groups = the_match.groups()
+            depth = int(groups[0])
+            seldepth = int(groups[1])
+            score = int(groups[3])
+            if groups[2] == 'mate':
+                mate_count = score
+                if score > 0:
+                    score = 32768 - mate_count
+                else:
+                    score = mate_count - 32768
+            nodes = int(groups[4])
+            move_one = groups[5]
+            
+#            print 'GOT IT. %s' % str([depth, seldepth, score, nodes, move_one])
+            return [depth, seldepth, score, nodes, move_one]
+        else:
+            if self.debug:
+                print 'not a standard info line, IGNORING.'
+            return None
+
     def bestmove(self):
         last_score_line = ""
         self.go()
+        
         while True:
             text = self.stdout.readline().strip()
             split_text = text.split(' ')
@@ -241,6 +281,26 @@ class Engine(subprocess.Popen):
                 }
             if 'score' in text:
                 last_score_line = text
+
+    # returns the best move, the ponder move, and an array of the infos at each search depth
+    def go_infos(self):
+        infos = []
+        self.go()
+        
+        while True:
+            text = self.stdout.readline().strip()
+            split_text = text.split(' ')
+            if split_text[0]=='bestmove':
+#                print "FOUND BESTMOVE: %s" % text
+                ponder = split_text[3] if len(split_text) >= 3 else None
+                return {'move': split_text[1],
+                        'ponder': ponder,
+                        'infos': infos
+                }
+            if 'score' in text:
+                info = self.parse_info(text)
+                if info:
+                    infos.append(info)
 
     def isready(self):
         '''
