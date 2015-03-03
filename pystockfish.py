@@ -183,8 +183,14 @@ class Engine(subprocess.Popen):
         self.isready()
 
     def setfen(self, fen):
+        '''
+        Sets the position by FEN code.
+        Returns [white-standard-value, black-standard-value, game-phase]
+        '''
         self.put('position fen %s'%fen)
+        text = self.stdout.readline().strip()
         self.isready()
+        return [int(x) for x in text.split()]
 
     def go(self):
         if self.depth:
