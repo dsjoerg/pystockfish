@@ -235,7 +235,7 @@ class Engine(subprocess.Popen):
 
     def parse_info(self, info):
         '''
-        Given an info string, returns [depth, seldepth, score, nodes, move_one, move_two]
+        Given an info string, returns [depth, seldepth, score, nodes, move_one, multipv]
         Where score is from the perspective of the player making the move.
 
         where mate-in-1 is equity 2^15 - 1 for white and 1 - 2^15 for black,
@@ -248,26 +248,27 @@ class Engine(subprocess.Popen):
         multiplier = 1
         if self.debug:
             print 'Extracting infos from %s' % info
-        the_match = re.search('info depth ([0-9]+) seldepth ([0-9]+) multipv 1 score (cp|mate) ([-0-9]+) nodes ([0-9]+) .* pv ([a-z1-9]+)', info)
+        the_match = re.search('info depth ([0-9]+) seldepth ([0-9]+) multipv ([0-9]) score (cp|mate) ([-0-9]+) nodes ([0-9]+) .* pv ([a-z1-9]+)', info)
         if the_match:
             groups = the_match.groups()
             depth = int(groups[0])
             seldepth = int(groups[1])
-            score = int(groups[3])
-            if groups[2] == 'mate':
+            multipv = int(groups[2])
+            score = int(groups[4])
+            if groups[3] == 'mate':
                 mate_count = score
                 if score > 0:
                     score = 32768 - mate_count
                 else:
                     score = mate_count - 32768
-            nodes = int(groups[4])
-            move_one = groups[5]
+            nodes = int(groups[5])
+            move_one = groups[6]
             
 #            print 'GOT IT. %s' % str([depth, seldepth, score, nodes, move_one])
-            return [depth, seldepth, score, nodes, move_one]
+            return [depth, seldepth, score, nodes, move_one, multipv]
         else:
             if self.debug:
-                print 'not a standard info line, IGNORING.'
+                print 'not a standard info line, IGNORING...'
             return None
 
     def bestmove(self):
