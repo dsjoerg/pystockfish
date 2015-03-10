@@ -235,20 +235,20 @@ class Engine(subprocess.Popen):
 
     def parse_info(self, info):
         '''
-        Given an info string, returns [depth, seldepth, score, nodes, move_one, multipv]
+        Given an info string, returns [depth, seldepth, score, nodes, move_one, pv_num, comptime]
         Where score is from the perspective of the player making the move.
 
         where mate-in-1 is equity 2^15 - 1 for white and 1 - 2^15 for black,
         mate-in-2 is equity 2^15 - 2 or 2 - 2^15
 
         move_one is the engine best move
-        and move_two is the best response move
-
+        pv_num is the rank number of the move being analyzed, 1 being the best
+        comptime is how many milliseconds had been spent on computation up to that point
         '''
         multiplier = 1
         if self.debug:
             print 'Extracting infos from %s' % info
-        the_match = re.search('info depth ([0-9]+) seldepth ([0-9]+) multipv ([0-9]) score (cp|mate) ([-0-9]+) nodes ([0-9]+) .* pv ([a-z1-9]+)', info)
+        the_match = re.search('info depth ([0-9]+) seldepth ([0-9]+) multipv ([0-9]) score (cp|mate) ([-0-9]+) nodes ([0-9]+) .* time ([0-9]+) pv ([a-z1-9]+)', info)
         if the_match:
             groups = the_match.groups()
             depth = int(groups[0])
@@ -262,10 +262,11 @@ class Engine(subprocess.Popen):
                 else:
                     score = mate_count - 32768
             nodes = int(groups[5])
-            move_one = groups[6]
+            comptime = int(groups[6])
+            move_one = groups[7]
             
 #            print 'GOT IT. %s' % str([depth, seldepth, score, nodes, move_one])
-            return [depth, seldepth, score, nodes, move_one, multipv]
+            return [depth, seldepth, score, nodes, move_one, multipv, comptime]
         else:
             if self.debug:
                 print 'not a standard info line, IGNORING...'
