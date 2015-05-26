@@ -275,6 +275,18 @@ class Engine(subprocess.Popen):
                 if info:
                     infos.append(info)
 
+    def go_fulltext(self):
+        '''returns the full text result of running stockfish, as a list of lines'''
+        result = []
+        self.go()
+        
+        while True:
+            text = self.stdout.readline().strip()
+            result.append(text)
+            split_text = text.split(' ')
+            if split_text[0]=='bestmove':
+                return result
+
     def isready(self):
         '''
         Used to synchronize the python engine object with the back-end engine.  Sends 'isready' and waits for 'readyok.'
