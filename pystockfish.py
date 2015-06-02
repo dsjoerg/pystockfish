@@ -188,6 +188,9 @@ class Engine(subprocess.Popen):
     def go(self):
         self.put('go depth %s'%self.depth)
 
+    def go_nodes(self, num_nodes):
+        self.put('go nodes %i' % num_nodes)
+
     def _movelisttostr(self,moves):
         '''
         Concatenates a list of strings
@@ -275,18 +278,17 @@ class Engine(subprocess.Popen):
                 if info:
                     infos.append(info)
 
-    def go_fulltext(self):
-        '''returns the full text result of running stockfish, as a list of lines'''
+    def capture_fulltext(self):
+        '''returns the full text result of an evaluation. call this function after you've told the engine to go.'''
         result = []
-        self.go()
-        
+
         while True:
             text = self.stdout.readline().strip()
             result.append(text)
             split_text = text.split(' ')
             if split_text[0]=='bestmove':
                 return result
-
+            
     def isready(self):
         '''
         Used to synchronize the python engine object with the back-end engine.  Sends 'isready' and waits for 'readyok.'
